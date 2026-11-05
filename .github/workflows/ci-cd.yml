@@ -1,0 +1,14 @@
+name: CI/CD to Local Registry
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  call-shared-deploy:
+    uses: doradora58/SharedWorkflows/.github/workflows/deploy.yml@main
+    with:
+      service-name: "auto-vehicle-emulator"
+      host-port: "8080"
+    secrets:
+      registry-host: ${{ secrets.REGISTRY_HOST }}

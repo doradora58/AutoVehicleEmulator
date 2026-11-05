@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Auto Vehicle Emulator</title>
+    <style>
+        :root { font-family: system-ui, sans-serif; color: #1f2937; background: #f1f5f9; }
+        body { max-width: 760px; margin: 40px auto; padding: 0 18px; }
+        main { padding: 24px; border: 1px solid #dbe3ec; border-radius: 12px; background: white; }
+        h1 { margin-top: 0; }
+        .status { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+        .badge { padding: 6px 10px; border-radius: 999px; background: #e2e8f0; font-size: .88rem; }
+        .online { color: #166534; background: #dcfce7; }
+        .offline { color: #9f1239; background: #ffe4e6; }
+        form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
+        label { display: grid; gap: 6px; font-size: .9rem; }
+        input { min-width: 0; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; }
+        button { padding: 10px 14px; border: 0; border-radius: 6px; color: white; background: #2563eb; font: inherit; cursor: pointer; }
+        button.secondary { margin-top: 16px; background: #475569; }
+        button:disabled { opacity: .6; cursor: wait; }
+        #message { min-height: 1.5em; margin: 12px 0 0; color: #475569; }
+        pre { overflow: auto; padding: 12px; border-radius: 6px; background: #f8fafc; }
+        @media (max-width: 600px) { form { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>🚜 車両エミュレーター</h1>
+        <div class="status">
+            <span id="identity" class="badge">車両: 読み込み中</span>
+            <span id="mqttStatus" class="badge">MQTT: 接続確認中</span>
+            <span id="simulationStatus" class="badge">移動: 停止中</span>
+        </div>
+        <form id="positionForm">
+            <label>緯度
+                <input id="latitude" type="number" step="any" min="-90" max="90" required>
+            </label>
+            <label>経度
+                <input id="longitude" type="number" step="any" min="-180" max="180" required>
+            </label>
+            <button type="submit">座標を送信</button>
+        </form>
+        <button id="simulationButton" class="secondary" type="button">移動シミュレーション開始</button>
+        <p id="message" role="status"></p>
+        <h2>送信状態</h2>
+        <pre id="details">読み込み中...</pre>
+    </main>
+    <script>
+        const latitudeInput = document.getElementById('latitude');
+        const longitudeInput = document.getElementById('longitude');
+        const message = document.getElementById('message');
+
+        async function refresh() {
+            try {
+                const response = await fetch('/api/vehicle');
+                if (!response.ok) throw new Error(`状態取得に失敗しました: ${response.status}`);
+                const state = await response.json();
+                document.getElementById('identity').textContent = `車両: ${state.manufacturer}/${state.serialNumber}`;
+                const mqtt = document.getElementById('mqttStatus');
+                mqtt.textContent = state.mqttConnected ? 'MQTT: 接続中' : 'MQTT: 未接続';
+                mqtt.className = `badge ${state.mqttConnected ? 'online' : 'offline'}`;
+                document.getElementById('simulationStatus').textContent =
+                    `移動: ${state.simulationEnabled ? '実行中' : '停止中'}`;
+                latitudeInput.value = state.position.latitude;
+                longitudeInput.value = state.position.longitude;
+                document.getElementById('details').textContent = JSON.stringify({
+                    position: state.position,
+                    lastPublishedAt: state.lastPublishedAt,
+                    lastError: state.lastError
+                }, null, 2);
+                const button = document.getElementById('simulationButton');
+                button.textContent = state.simulationEnabled
+                    ? '移動シミュレーション停止'
+                    : '移動シミュレーション開始';
+            } catch (error) {
+                message.textContent = error.message;
+            }
+        }
+
+        document.getElementById('positionForm').addEventListener('submit', async event => {
+            event.preventDefault();
+            const button = event.submitter;
+            button.disabled = true;
+            try {
+                const response = await fetch('/api/vehicle/position', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        latitude: Number(latitudeInput.value),
+                        longitude: Number(longitudeInput.value)
+                    })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error ?? `送信に失敗しました: ${response.status}`);
+                message.textContent = '座標を更新しました。MQTTでFMSへ送信されます。';
+                await refresh();
+            } catch (error) {
+                message.textContent = error.message;
+            } finally {
+                button.disabled = false;
+            }
+        });
+
+        document.getElementById('simulationButton').addEventListener('click', async () => {
+            try {
+                const stateResponse = await fetch('/api/vehicle');
+                if (!stateResponse.ok) throw new Error(`状態取得に失敗しました: ${stateResponse.status}`);
+                const state = await stateResponse.json();
+                const response = await fetch('/api/vehicle/simulation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: !state.simulationEnabled })
+                });
+                if (!response.ok) throw new Error(`シミュレーション設定に失敗しました: ${response.status}`);
+                message.textContent = '座標を定期的に更新してFMSへ送信します。';
+                await refresh();
+            } catch (error) {
+                message.textContent = error.message;
+            }
+        });
+
+        refresh();
+        setInterval(refresh, 2000);
+    </script>
+</body>
+</html>
