@@ -9,6 +9,6 @@ jobs:
     uses: doradora58/SharedWorkflows/.github/workflows/deploy.yml@main
     with:
       service-name: "auto-vehicle-emulator"
-      host-port: "8080"
+      host-port: "9030"
     secrets:
       registry-host: ${{ secrets.REGISTRY_HOST }}

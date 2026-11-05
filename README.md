@@ -7,6 +7,11 @@ simulated movement loop.
 Open `AutoVehicleEmulator.sln` in Visual Studio 2022 17.12 or later (with the
 .NET 9 SDK installed).
 
+The GitHub Actions workflow uses the shared `doradora58/SharedWorkflows`
+pipeline to build and publish the image. Configure `REGISTRY_HOST` as a
+hostname with an optional port, such as `192.168.1.148:5000`; the shared
+workflow also trims an accidental `http://`, `https://`, or trailing slash.
+
 ## Docker
 
 Build the image from this repository root:
