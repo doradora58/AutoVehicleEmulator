@@ -2,7 +2,7 @@
 
 ASP.NET Core web app for sending a VDA 5050 2.0.0 vehicle state to FMS over
 MQTT. The built-in web page lets you set GPS coordinates or start a small
-simulated movement loop.
+simulated movement loop. The initial vehicle position is Nagoya Station.
 
 Open `AutoVehicleEmulator.sln` in Visual Studio 2022 17.12 or later (with the
 .NET 9 SDK installed).
@@ -77,7 +77,7 @@ Example:
 
 ```powershell
 Invoke-RestMethod -Method Put -Uri http://localhost:5120/api/vehicle/position `
-  -ContentType "application/json" -Body '{"latitude":35.681236,"longitude":139.767125}'
+  -ContentType "application/json" -Body '{"latitude":35.170915,"longitude":136.881537}'
 ```
 
 Configure identity and broker credentials through the `VehicleEmulator`

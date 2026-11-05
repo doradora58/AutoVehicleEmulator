@@ -12,8 +12,8 @@ public sealed class VehicleEmulatorService : BackgroundService
     private readonly VehicleEmulatorSettings settings;
     private readonly ILogger<VehicleEmulatorService> logger;
     private readonly IMqttClient mqttClient;
-    private VehiclePosition position = new(35.681236, 139.767125);
-    private VehiclePosition simulationOrigin = new(35.681236, 139.767125);
+    private VehiclePosition position = new(35.170915, 136.881537);
+    private VehiclePosition simulationOrigin = new(35.170915, 136.881537);
     private bool simulationEnabled;
     private double simulationAngle;
     private int headerId;
